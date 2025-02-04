@@ -52,83 +52,102 @@ import matplotlib.pyplot as plt
 
 # Extract data from the dataset
 # Temperature section
+variables = ['thetao', 'so', 'uo', 'vo']
+cmap = ['viridis', 'cool', 'coolwarm', 'coolwarm']
+# thetao = ds_resampled['thetao']
+# salinity = ds_resampled['so']
+# u = ds_resampled['uo']
+# v = ds_resampled['vo']
 
-thetao = ds_resampled['thetao']
-time = thetao['time']
-depth = thetao['depth']
-latitude = thetao['latitude']
-longitude = thetao['longitude']
-
-max_depth = thetao['depth'].max().values  # Maximum depth in the dataset
-
-# Create the plots for the full ocean depth
-for t, tt in enumerate(time.data):
+for ii, var in enumerate(variables):
+    print(var, cmap[ii])
+    var_da = ds_resampled[var]
+    time = var_da['time']
+    depth = var_da['depth']
+    latitude = var_da['latitude']
+    longitude = var_da['longitude']
     
-    # Convert latitude and longitude to a string format for labeling
-    lat_lon_labels = [f"{lat:.2f}°N, {lon:.2f}°W" for lat, lon in zip(latitude.values, longitude.values)]
+    max_depth = 2600 #var_da['depth'].max().values  # Maximum depth in the dataset
 
-    # Create the plot
-    plt.figure(figsize=(14, 6))
-    for t in range(len(time)):
+    # Create the plots for the full ocean depth
+    for t, tt in enumerate(time.data):
+        
+        # Convert latitude and longitude to a string format for labeling
+        lat_lon_labels = [f"{lat:.2f}°N, {lon:.2f}°W" for lat, lon in zip(latitude.values, longitude.values)]
+
+        # Create the plot
+        # for t in range(len(time)):
+        plt.figure(figsize=(10, 6))
+        # plt.subplot(3, 1, 1)
         plt.contourf(
             latitude,
             -depth,
-            thetao.isel(time=t),
+            var_da.isel(time=t),
             levels=50,
-            cmap='viridis'
+            cmap=cmap[ii]
         )
 
-    # Add labels and titles
-    plt.ylim(-2600, 0)  # Reverse the y-axis to show depth increasing downwards
-    plt.colorbar(label="Potential Temperature (°C)")
-    plt.xticks(latitude[0::10], labels=lat_lon_labels[0::10], rotation=45, ha="right")  # Use lat/lon labels
-    plt.xlabel("Latitude, Longitude")
-    plt.ylabel("Depth (m)")
-    plt.title(f"Temperature from (71.211565N, 6.298711W) to (70.836847N, 6.411678W) {tt}", fontsize=14)
+        # Add labels and titles
+        plt.ylim(-max_depth, 0)  # Reverse the y-axis to show depth increasing downwards
+        plt.colorbar(label= var_da.attrs['unit_long']) #"Potential Temperature (°C)")
+        plt.xticks(latitude[0::10], labels=lat_lon_labels[0::10], rotation=45, 
+                ha="right")  # Use lat/lon labels
+        plt.xlabel("Latitude, Longitude")
+        plt.ylabel("Depth (m)")
+        var_long_name = var_da.attrs['long_name']
+        date = str(tt)[:10]
+        plt.title(f"{var_long_name} {date}", fontsize=14)
+                  # from (71.211565N, 6.298711W) to (70.836847N, 6.411678W)  
+        plt.tight_layout()
+        plt.savefig(f'../img/{var}_section_full_{date}.png')
+        plt.close()
 
-    # Show the plot
-    plt.tight_layout()
-    plt.savefig(f'../data/processed/UTS_section_full_{tt}.png')
 
+    # plot the upper ocean
+    max_depth = 300  # Define the depth range (e.g., upper 300 meters)
 
-# %%
-# plot the upper ocean
-max_depth = 300  # Define the depth range (e.g., upper 300 meters)
+    var_upper = ds_resampled[var].sel(depth=slice(0, max_depth))  # Slice depths
 
-thetao_upper = ds_resampled['thetao'].sel(depth=slice(0, max_depth))  # Slice depths
+    # Extract the necessary dimensions
+    depth = var_upper['depth']
+    latitude = var_upper['latitude']
+    longitude = var_upper['longitude']
+    time = var_upper['time']
 
-# Extract the necessary dimensions
-depth = thetao_upper['depth']
-latitude = thetao_upper['latitude']
-longitude = thetao_upper['longitude']
-time = thetao_upper['time']
+    # Create the plots for the upper ocean
+    for t, tt in enumerate(time.data):
+        # Combine latitude and longitude into labels for the x-axis
+        lat_lon_labels = [f"{lat:.2f}°N, {-lon:.2f}°W" for lat, lon in zip(latitude.values, longitude.values)]
 
-# Create the plots for the upper ocean
-for t, tt in enumerate(time.data):
-    # Combine latitude and longitude into labels for the x-axis
-    lat_lon_labels = [f"{lat:.2f}°N, {-lon:.2f}°W" for lat, lon in zip(latitude.values, longitude.values)]
-
-    # Create the plot
-    plt.figure(figsize=(14, 6))
-    for t in range(len(time)):
+        # Create the plot
+        plt.figure(figsize=(10, 6))
+        
+        # for t in range(len(time)):
+        # plt.subplot(1, 1, 1)
         plt.contourf(
             latitude,
             -depth,  # Negative depth for proper orientation
-            thetao_upper.isel(time=t),
+            var_upper.isel(time=t),
             levels=50,
-            cmap='viridis'
+            cmap=cmap[ii]
         )
 
-    # Add colorbar, labels, and titles
-    plt.colorbar(label="Potential Temperature (°C)")
-    plt.xticks(latitude[0::10], labels=lat_lon_labels[0::10], 
-            rotation=45, ha="right")  # Use lat/lon labels
-    plt.xlabel("Latitude, Longitude")
-    plt.ylabel("Depth (m)")
-    plt.title(f"Temperature from (71.211565N, 6.298711W) to (70.836847N, 6.411678W) {tt} ") # (Upper {max_depth}m)
-
-    # Adjust layout and show plot
-    plt.tight_layout()
-    plt.savefig(f'../data/processed/UTS_section_upper_{max_depth}m_{tt}.png')
-
+        # Add colorbar, labels, and titles
+        plt.colorbar(label= var_da.attrs['unit_long']) #"Potential Temperature (°C)")
+        plt.xticks(latitude[0::10], labels=lat_lon_labels[0::10], rotation=45, 
+                ha="right")  # Use lat/lon labels
+        plt.xlabel("Latitude, Longitude")
+        plt.ylabel("Depth (m)")
+        var_long_name = var_da.attrs['long_name']
+        date = str(tt)[:10]
+        plt.title(f"{var_long_name} {date}", fontsize=14) 
+        # from (71.211565N, 6.298711W) to (70.836847N, 6.411678W)
+        plt.tight_layout()
+        plt.savefig(f'../img/{var}_section_upper_{max_depth}m_{date}.png')
+        plt.close()
+    
+# %%
+# Write those subsampled data to netcdf or CSV
+ds_resampled.to_netcdf(f'../data/processed/UTS_section.nc')
+    
 # %%
